@@ -12,7 +12,7 @@ const Tab = createBottomTabNavigator();
 
 const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Home: 'home',
-  Stats: 'bar-chart',
+  Impact: 'bar-chart',
   Social: 'trophy',
   Profile: 'person',
 };
@@ -55,11 +55,11 @@ export default function MainTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Stats"
+        name="Impact"
         component={StatsScreen}
         options={{
-          tabBarLabel: 'STATS',
-          tabBarIcon: ({ color, size }) => <Ionicons name={TAB_ICONS.Stats} size={size} color={color} />,
+          tabBarLabel: 'IMPACT',
+          tabBarIcon: ({ color, size }) => <Ionicons name={TAB_ICONS.Impact} size={size} color={color} />,
         }}
       />
       <Tab.Screen
