@@ -8,7 +8,7 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -29,8 +29,17 @@ export default function LetsMakeItSmarterScreen() {
   const [activityEnabled, setActivityEnabled] = useState(true);
 
   const goBack = () => navigation.goBack();
-  const enableAndStart = () => navigation.navigate('NextOnboarding');
-  const maybeLater = () => navigation.navigate('NextOnboarding');
+
+  const goToMain = () => {
+    const rootNav = navigation.getParent()?.getParent();
+    if (rootNav) {
+      rootNav.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Main' }] }));
+    } else {
+      navigation.dispatch(CommonActions.navigate({ name: 'Main' }));
+    }
+  };
+  const enableAndStart = goToMain;
+  const maybeLater = goToMain;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>

@@ -10,7 +10,7 @@ import {
 } from '@expo-google-fonts/plus-jakarta-sans';
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
-import OnboardingNavigator from './src/navigation/OnboardingNavigator';
+import RootNavigator from './src/navigation/RootNavigator';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,7 +36,7 @@ export default function App() {
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <StatusBar style="dark" />
       <NavigationContainer>
-        <OnboardingNavigator />
+        <RootNavigator />
       </NavigationContainer>
     </View>
   );
