@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     }),
   },
   transportCardSelected: {
-    borderColor: GREEN_BORDER,
+    borderColor: GREEN,
   },
   transportIconWrap: {
     width: 44,
