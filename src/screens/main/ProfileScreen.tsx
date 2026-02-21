@@ -68,10 +68,10 @@ export default function ProfileScreen() {
               <Ionicons name="checkmark" size={14} color="#FFFFFF" />
             </View>
           </View>
-          <Text style={[styles.userName, { fontFamily: FONT.bold }]}>Alex Rivers</Text>
+          <Text style={[styles.userName, { fontFamily: FONT.bold }]}>Ishan Gupta</Text>
           <View style={styles.levelBadge}>
             <Ionicons name="leaf" size={14} color={BADGE_TEXT} />
-            <Text style={[styles.levelBadgeText, { fontFamily: FONT.bold }]}>LEVEL 4 CLIMATE HERO</Text>
+            <Text style={[styles.levelBadgeText, { fontFamily: FONT.bold }]}>LEVEL 12 CLIMATE HERO</Text>
           </View>
         </View>
 

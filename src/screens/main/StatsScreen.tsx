@@ -189,7 +189,7 @@ export default function StatsScreen() {
         {/* Community Impact */}
         <View style={[styles.section, { width: contentWidth }]}>
           <View style={styles.communityHeader}>
-            <Text style={[styles.sectionLabel, { fontFamily: FONT.bold }]}>COMMUNITY IMPACT: LONDON</Text>
+            <Text style={[styles.sectionLabel, { fontFamily: FONT.bold }]}>COMMUNITY IMPACT: DELHI NCR</Text>
             <View style={styles.activeWrap}>
               <Ionicons name="people" size={18} color={GREEN} />
               <Text style={[styles.activeText, { fontFamily: FONT.semiBold }]}>12k Active</Text>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,16 @@ import {
   StyleSheet,
   useWindowDimensions,
   Platform,
+  Animated,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { FONT } from '../../theme/fonts';
+import { useImpact } from '../../contexts/ImpactContext';
 
 const CONTENT_PADDING = 24;
 const GREEN = '#0F9F59';
@@ -25,10 +29,10 @@ const ICON_BG_LIGHT = '#F1F5F9';
 const PILL_BG_LIGHT = '#E8F5E9';
 
 const TRANSPORT_ITEMS = [
-  { id: 'metro', label: 'Metro', icon: 'train' as const, co2: '-2.4kg CO₂', xp: 45, iconBg: '#DCFCE7' },
-  { id: 'bicycle', label: 'Bicycle', icon: 'bicycle' as const, co2: '-3.1kg CO₂', xp: 60, iconBg: ICON_BG_LIGHT },
-  { id: 'bus', label: 'Bus', icon: 'bus' as const, co2: '-1.8kg CO₂', xp: 30, iconBg: ICON_BG_LIGHT },
-  { id: 'walk', label: 'Walk', icon: 'walk' as const, co2: '-3.8kg CO₂', xp: 80, iconBg: ICON_BG_LIGHT },
+  { id: 'metro', label: 'Metro', icon: 'train' as const, co2: '-2.4kg CO₂', co2Kg: 2.4, xp: 45, iconBg: '#DCFCE7' },
+  { id: 'bicycle', label: 'Bicycle', icon: 'bicycle' as const, co2: '-3.1kg CO₂', co2Kg: 3.1, xp: 60, iconBg: ICON_BG_LIGHT },
+  { id: 'bus', label: 'Bus', icon: 'bus' as const, co2: '-1.8kg CO₂', co2Kg: 1.8, xp: 30, iconBg: ICON_BG_LIGHT },
+  { id: 'walk', label: 'Walk', icon: 'walk' as const, co2: '-3.8kg CO₂', co2Kg: 3.8, xp: 80, iconBg: ICON_BG_LIGHT },
 ];
 
 const LIFESTYLE_ITEMS = [
@@ -40,9 +44,42 @@ export default function LogYourActionScreen() {
   const { width } = useWindowDimensions();
   const contentWidth = width - CONTENT_PADDING * 2;
   const navigation = useNavigation();
+  const { addImpact, totalPoints, co2SavedKg } = useImpact();
   const [selectedTransport, setSelectedTransport] = useState<string | null>('metro');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [earnedXp, setEarnedXp] = useState(0);
+  const [earnedCo2, setEarnedCo2] = useState(0);
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const checkOpacity = useRef(new Animated.Value(0)).current;
 
   const goBack = () => navigation.goBack();
+
+  const handleAddToImpact = () => {
+    const item = TRANSPORT_ITEMS.find((t) => t.id === selectedTransport);
+    if (!item) return;
+    const newXp = item.xp;
+    const newCo2 = item.co2Kg;
+    addImpact({ xp: newXp, co2Kg: newCo2 });
+    setEarnedXp(newXp);
+    setEarnedCo2(newCo2);
+    setShowSuccess(true);
+    scaleAnim.setValue(0);
+    opacityAnim.setValue(0);
+    checkOpacity.setValue(0);
+    Animated.sequence([
+      Animated.parallel([
+        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 8, tension: 80 }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 280, useNativeDriver: true }),
+      ]),
+      Animated.timing(checkOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const closeSuccess = () => {
+    setShowSuccess(false);
+    goBack();
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -127,10 +164,62 @@ export default function LogYourActionScreen() {
 
       {/* Add to My Impact button */}
       <View style={[styles.footer, { paddingHorizontal: CONTENT_PADDING }]}>
-        <TouchableOpacity style={styles.ctaButton} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.ctaButton} onPress={handleAddToImpact} activeOpacity={0.85}>
           <Text style={[styles.ctaText, { fontFamily: FONT.bold }]}>Add to My Impact</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Success overlay */}
+      <Modal visible={showSuccess} transparent animationType="none">
+        <Pressable style={styles.successOverlay} onPress={closeSuccess}>
+          <Animated.View
+            style={[
+              styles.successBackdrop,
+              { opacity: opacityAnim },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.successCard,
+              {
+                width: contentWidth,
+                transform: [{ scale: scaleAnim }],
+              },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            <Animated.View style={[styles.successCheckWrap, { opacity: checkOpacity }]}>
+              <Ionicons name="checkmark-circle" size={72} color={GREEN} />
+            </Animated.View>
+            <Text style={[styles.successTitle, { fontFamily: FONT.extraBold }]}>Added to Impact!</Text>
+            <Text style={[styles.successSubtitle, { fontFamily: FONT.medium }]}>
+              You earned
+            </Text>
+            <View style={styles.successStatsRow}>
+              <View style={styles.successStat}>
+                <Text style={[styles.successStatValue, { fontFamily: FONT.extraBold }]}>+{earnedXp}</Text>
+                <Text style={[styles.successStatLabel, { fontFamily: FONT.medium }]}>XP</Text>
+              </View>
+              <View style={styles.successStatDivider} />
+              <View style={styles.successStat}>
+                <Text style={[styles.successStatValue, { fontFamily: FONT.extraBold }]}>{earnedCo2} kg</Text>
+                <Text style={[styles.successStatLabel, { fontFamily: FONT.medium }]}>CO₂ saved</Text>
+              </View>
+            </View>
+            <View style={styles.successTotalsWrap}>
+              <Text style={[styles.successTotalsLabel, { fontFamily: FONT.medium }]}>Your new totals</Text>
+              <View style={styles.successTotalsRow}>
+                <Text style={[styles.successTotalsValue, { fontFamily: FONT.bold }]}>{totalPoints} XP</Text>
+                <Text style={[styles.successTotalsValue, { fontFamily: FONT.bold }]}>{co2SavedKg.toFixed(1)} kg CO₂</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.successCta} onPress={closeSuccess} activeOpacity={0.85}>
+              <Text style={[styles.successCtaText, { fontFamily: FONT.bold }]}>View my impact</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </Animated.View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -319,6 +408,99 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  successOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: CONTENT_PADDING,
+  },
+  successBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+  },
+  successCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: 28,
+    padding: 28,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24 },
+      android: { elevation: 12 },
+    }),
+  },
+  successCheckWrap: {
+    marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 22,
+    color: TEXT_DARK,
+    marginBottom: 6,
+  },
+  successSubtitle: {
+    fontSize: 15,
+    color: TEXT_MUTED,
+    marginBottom: 16,
+  },
+  successStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    width: '100%',
+  },
+  successStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  successStatValue: {
+    fontSize: 24,
+    color: GREEN,
+    marginBottom: 2,
+  },
+  successStatLabel: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+  },
+  successStatDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: '#E2E8F0',
+  },
+  successTotalsWrap: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  successTotalsLabel: {
+    fontSize: 12,
+    color: TEXT_MUTED,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successTotalsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
+  },
+  successTotalsValue: {
+    fontSize: 16,
+    color: TEXT_DARK,
+  },
+  successCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: GREEN,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  successCtaText: {
     fontSize: 16,
     color: '#FFFFFF',
   },

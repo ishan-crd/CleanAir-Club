@@ -178,7 +178,7 @@ export default function SocialScreen() {
                 <Ionicons name="person" size={20} color="#D4B5A9" />
               </View>
               <View>
-                <Text style={[styles.youName, { fontFamily: FONT.bold }]}>You (Kabir)</Text>
+                <Text style={[styles.youName, { fontFamily: FONT.bold }]}>You (Ishan)</Text>
                 <Text style={[styles.youDistrict, { fontFamily: FONT.medium }]}>NOIDA DISTRICT</Text>
               </View>
             </View>

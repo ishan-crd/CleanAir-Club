@@ -10,6 +10,7 @@ import {
 } from '@expo-google-fonts/plus-jakarta-sans';
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
+import { ImpactProvider } from './src/contexts/ImpactContext';
 import RootNavigator from './src/navigation/RootNavigator';
 
 SplashScreen.preventAutoHideAsync();
@@ -35,9 +36,11 @@ export default function App() {
   return (
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <StatusBar style="dark" />
-      <NavigationContainer>
-        <RootNavigator />
-      </NavigationContainer>
+      <ImpactProvider>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </ImpactProvider>
     </View>
   );
 }

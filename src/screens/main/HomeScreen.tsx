@@ -12,8 +12,10 @@ import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 
 import { FONT } from '../../theme/fonts';
+import { useImpact } from '../../contexts/ImpactContext';
 
 const CONTENT_PADDING = 24;
+const MONTHLY_GOAL_KG = 15;
 
 const AQI_BAR_COLORS = ['#E2E8F0', '#94A3B8', '#FDE047', '#FFB300', '#EA580C'];
 
@@ -56,6 +58,8 @@ function CircularProgress({ percent, size = 56 }: { percent: number; size?: numb
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const contentWidth = width - CONTENT_PADDING * 2;
+  const { totalPoints, co2SavedKg } = useImpact();
+  const goalPercent = Math.min(100, Math.round((co2SavedKg / MONTHLY_GOAL_KG) * 100));
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -75,9 +79,14 @@ export default function HomeScreen() {
               <Ionicons name="leaf" size={20} color="#0F9F59" style={styles.leafIcon} />
             </View>
           </View>
-          <View style={styles.levelBadge}>
-            <Ionicons name="star" size={16} color="#0F9F59" />
-            <Text style={[styles.levelText, { fontFamily: FONT.bold }]}>Level 12</Text>
+          <View style={styles.headerBadges}>
+            <View style={styles.xpBadgeHeader}>
+              <Text style={[styles.xpBadgeHeaderText, { fontFamily: FONT.bold }]}>{totalPoints} XP</Text>
+            </View>
+            <View style={styles.levelBadge}>
+              <Ionicons name="star" size={16} color="#0F9F59" />
+              <Text style={[styles.levelText, { fontFamily: FONT.bold }]}>Level 12</Text>
+            </View>
           </View>
         </View>
 
@@ -105,16 +114,17 @@ export default function HomeScreen() {
           <Text style={[styles.goalLabel, { fontFamily: FONT.bold }]}>MONTHLY GOAL IMPACT</Text>
           <View style={styles.goalRow}>
             <View>
-              <Text style={[styles.goalValue, { fontFamily: FONT.extraBold }]}>12.4 kg <Text style={[styles.goalUnit, { fontFamily: FONT.medium }]}>CO₂ saved</Text></Text>
-              
+              <Text style={[styles.goalValue, { fontFamily: FONT.extraBold }]}>
+                {co2SavedKg.toFixed(1)} kg <Text style={[styles.goalUnit, { fontFamily: FONT.medium }]}>CO₂ saved</Text>
+              </Text>
             </View>
             <View style={styles.goalProgressWrap}>
-              <CircularProgress percent={82} size={64} />
-              <Text style={[styles.goalPercent, { fontFamily: FONT.bold }]}>82%</Text>
+              <CircularProgress percent={goalPercent} size={64} />
+              <Text style={[styles.goalPercent, { fontFamily: FONT.bold }]}>{goalPercent}%</Text>
             </View>
           </View>
           <Text style={[styles.goalTarget, { fontFamily: FONT.medium }]}>
-            82% of your monthly target
+            {goalPercent}% of your monthly target
           </Text>
         </View>
 
@@ -210,6 +220,21 @@ const styles = StyleSheet.create({
   },
   leafIcon: {
     marginLeft: 6,
+  },
+  headerBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  xpBadgeHeader: {
+    backgroundColor: '#FFF7ED',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9999,
+  },
+  xpBadgeHeaderText: {
+    fontSize: 14,
+    color: '#EA580C',
   },
   levelBadge: {
     flexDirection: 'row',
