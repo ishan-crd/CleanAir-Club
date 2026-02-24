@@ -7,17 +7,27 @@ import {
   useWindowDimensions,
   Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 
 import { FONT } from '../../theme/fonts';
 import { useImpact } from '../../contexts/ImpactContext';
+import { getLevelFromTotalXP } from '../../utils/levels';
 
 const CONTENT_PADDING = 24;
 const MONTHLY_GOAL_KG = 15;
 
-const AQI_BAR_COLORS = ['#E2E8F0', '#94A3B8', '#FDE047', '#FFB300', '#EA580C'];
+const AQI_BAR_COLORS: Array<{ key: string; color: string }> = [
+  { key: 'good', color: '#FFFFFF' },
+  { key: 'moderate', color: '#FFFFFF' },
+  { key: 'caution', color: '#FDBA74' },
+  { key: 'unhealthy', color: '#DC2626' },
+  { key: 'very-unhealthy', color: '#FDA4AF' },
+  { key: 'hazardous', color: '#FFFFFF' },
+];
+const AQI_ACTIVE_INDEX = 3; // Very Unhealthy (250)
 
 const SQUAD_MEMBERS = [
   { id: '1', name: 'You', rank: 3, avatar: 'person' },
@@ -58,8 +68,14 @@ function CircularProgress({ percent, size = 56 }: { percent: number; size?: numb
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const contentWidth = width - CONTENT_PADDING * 2;
+  const navigation = useNavigation();
   const { totalPoints, co2SavedKg } = useImpact();
   const goalPercent = Math.min(100, Math.round((co2SavedKg / MONTHLY_GOAL_KG) * 100));
+  const currentLevel = getLevelFromTotalXP(totalPoints);
+  const openLevelScreen = () => {
+    const root = (navigation as { getParent?: () => { navigate: (name: string) => void } }).getParent?.();
+    root?.navigate('Level');
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -83,28 +99,35 @@ export default function HomeScreen() {
             <View style={styles.xpBadgeHeader}>
               <Text style={[styles.xpBadgeHeaderText, { fontFamily: FONT.bold }]}>{totalPoints} XP</Text>
             </View>
-            <View style={styles.levelBadge}>
+            <TouchableOpacity style={styles.levelBadge} onPress={openLevelScreen} activeOpacity={0.8}>
               <Ionicons name="star" size={16} color="#0F9F59" />
-              <Text style={[styles.levelText, { fontFamily: FONT.bold }]}>Level 12</Text>
-            </View>
+              <Text style={[styles.levelText, { fontFamily: FONT.bold }]}>Level {currentLevel}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* AQI Card */}
         <View style={[styles.card, styles.aqiCard, { width: contentWidth }]}>
           <View style={styles.aqiWarningIcon}>
-            <Ionicons name="warning" size={20} color="#FFB300" />
+            <Ionicons name="warning" size={20} color="#FFFFFF" />
           </View>
           <Text style={[styles.aqiLabel, { fontFamily: FONT.bold }]}>AQ AIR QUALITY INDEX</Text>
           <Text style={[styles.aqiValue, { fontFamily: FONT.extraBold }]}>
-            150 — Unhealthy
+            250 — Very Unhealthy
           </Text>
           <Text style={[styles.aqiRecommendation, { fontFamily: FONT.medium }]}>
-            Sensitive groups should stay indoors
+            Sensitive groups should stay at home
           </Text>
           <View style={styles.aqiBars}>
-            {AQI_BAR_COLORS.map((color) => (
-              <View key={color} style={[styles.aqiBar, { backgroundColor: color }]} />
+            {AQI_BAR_COLORS.map((bar, i) => (
+              <View
+                key={bar.key}
+                style={[
+                  styles.aqiBar,
+                  { backgroundColor: bar.color },
+                  i === AQI_ACTIVE_INDEX && styles.aqiBarActive,
+                ]}
+              />
             ))}
           </View>
         </View>
@@ -264,7 +287,7 @@ const styles = StyleSheet.create({
     }),
   },
   aqiCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#C2410C',
     position: 'relative',
   },
   aqiWarningIcon: {
@@ -274,24 +297,26 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 179, 0, 0.2)',
+    backgroundColor: 'rgba(251, 146, 60, 0.9)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(220, 38, 38, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   aqiLabel: {
     fontSize: 11,
     letterSpacing: 1,
-    color: '#FFB300',
+    color: 'rgba(255, 255, 255, 0.95)',
     marginBottom: 6,
   },
   aqiValue: {
     fontSize: 26,
-    color: '#0F172A',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   aqiRecommendation: {
     fontSize: 13,
-    color: '#64748B',
+    color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 16,
   },
   aqiBars: {
@@ -302,6 +327,9 @@ const styles = StyleSheet.create({
   aqiBar: {
     flex: 1,
     borderRadius: 6,
+  },
+  aqiBarActive: {
+    opacity: 1,
   },
   goalCard: {
     backgroundColor: '#0F9F59',

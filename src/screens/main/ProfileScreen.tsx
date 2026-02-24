@@ -295,6 +295,7 @@ const styles = StyleSheet.create({
     borderColor: BORDER_LIGHT,
     overflow: 'hidden',
   },
+
   settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
