@@ -8,9 +8,11 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { FONT } from '../../theme/fonts';
+import { ACHIEVEMENTS } from '../../data/achievements';
 
 const CONTENT_PADDING = 24;
 const GREEN = '#0F9F59';
@@ -26,13 +28,6 @@ const STAT_BLUE = '#2563EB';
 const STAT_PURPLE = '#7C3AED';
 const LOGOUT_RED = '#DC2626';
 
-const ACHIEVEMENTS = [
-  { id: 'earlybird', title: 'Early Bird', icon: 'sunny' as const, bg: 'rgba(254, 240, 138, 0.5)', iconColor: '#CA8A04' },
-  { id: 'pedal', title: 'Pedal Master', icon: 'bicycle' as const, bg: 'rgba(191, 219, 254, 0.5)', iconColor: '#2563EB' },
-  { id: 'tree', title: 'Tree Planter', icon: 'leaf' as const, bg: 'rgba(167, 243, 208, 0.5)', iconColor: '#059669' },
-  { id: 'top1', title: 'Top 1%', icon: 'star' as const, bg: 'rgba(233, 213, 255, 0.5)', iconColor: '#9333EA' },
-];
-
 const SETTINGS_ROWS = [
   { id: 'edit', label: 'Edit Account', icon: 'person-outline' as const, color: TEXT_DARK },
   { id: 'settings', label: 'App Settings', icon: 'settings-outline' as const, color: TEXT_DARK },
@@ -42,6 +37,11 @@ const SETTINGS_ROWS = [
 export default function ProfileScreen() {
   const { width } = useWindowDimensions();
   const contentWidth = width - CONTENT_PADDING * 2;
+  const navigation = useNavigation();
+  const openAchievements = (highlightId?: string) => {
+    const root = (navigation as { getParent?: () => { navigate: (name: string, params?: object) => void } }).getParent?.();
+    root?.navigate('Achievements', highlightId ? { highlightId } : undefined);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -95,20 +95,25 @@ export default function ProfileScreen() {
         <View style={[styles.section, { width: contentWidth }]}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { fontFamily: FONT.bold }]}>Achievements</Text>
-            <TouchableOpacity activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => openAchievements()} activeOpacity={0.7}>
               <Text style={[styles.viewAllLink, { fontFamily: FONT.semiBold }]}>View All</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.achievementsRow}>
             {ACHIEVEMENTS.map((a) => (
-              <View key={a.id} style={styles.achievementCard}>
+              <TouchableOpacity
+                key={a.id}
+                style={styles.achievementCard}
+                onPress={() => openAchievements(a.id)}
+                activeOpacity={0.7}
+              >
                 <View style={[styles.achievementIconWrap, { backgroundColor: a.bg }]}>
                   <Ionicons name={a.icon} size={38} color={a.iconColor} />
                 </View>
                 <Text style={[styles.achievementTitle, { fontFamily: FONT.semiBold }]} numberOfLines={1}>
                   {a.title}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>

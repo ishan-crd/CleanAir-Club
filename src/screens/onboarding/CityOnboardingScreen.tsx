@@ -160,7 +160,7 @@ export default function CityOnboardingScreen() {
           <View style={styles.aqiTopRow}>
             <View style={styles.aqiHalfLeft}>
               <Text style={[styles.aqiLabel, { fontFamily: FONT.bold }]}>CURRENT</Text>
-              <Text style={[styles.aqiValueCurrent, { fontFamily: FONT.bold }]}>AQI 150</Text>
+              <Text style={[styles.aqiValueCurrent, { fontFamily: FONT.bold }]}>AQI 250</Text>
               <View style={styles.aqiPillUnhealthy}>
                 <Text style={[styles.aqiPillTextUnhealthy, { fontFamily: FONT.medium }]}>
                   UNHEALTHY

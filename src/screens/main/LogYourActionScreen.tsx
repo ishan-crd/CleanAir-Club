@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { FONT } from '../../theme/fonts';
 import { useImpact } from '../../contexts/ImpactContext';
+import { useCommuteLog } from '../../contexts/CommuteLogContext';
 
 const CONTENT_PADDING = 24;
 const GREEN = '#0F9F59';
@@ -40,40 +41,104 @@ const LIFESTYLE_ITEMS = [
   { id: 'meal', title: 'Meat-free Meal', desc: 'Plant-based breakfast', co2: '-1.5kg', xp: 50, icon: 'restaurant' as const, iconBg: '#FFEDD5', iconColor: '#EA580C' },
 ];
 
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function runSuccessAnimation(
+  scaleAnim: Animated.Value,
+  opacityAnim: Animated.Value,
+  checkOpacity: Animated.Value,
+) {
+  scaleAnim.setValue(0);
+  opacityAnim.setValue(0);
+  checkOpacity.setValue(0);
+  Animated.sequence([
+    Animated.parallel([
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 8, tension: 80 }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 280, useNativeDriver: true }),
+    ]),
+    Animated.timing(checkOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+  ]).start();
+}
+
 export default function LogYourActionScreen() {
   const { width } = useWindowDimensions();
   const contentWidth = width - CONTENT_PADDING * 2;
   const navigation = useNavigation();
   const { addImpact, totalPoints, co2SavedKg } = useImpact();
+  const commute = useCommuteLog();
+
   const [selectedTransport, setSelectedTransport] = useState<string | null>('metro');
   const [showSuccess, setShowSuccess] = useState(false);
   const [earnedXp, setEarnedXp] = useState(0);
   const [earnedCo2, setEarnedCo2] = useState(0);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const checkOpacity = useRef(new Animated.Value(0)).current;
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { state: commuteState, getElapsedMs, startLog, pauseLog, continueLog, stopLog } = commute;
+  const logPhase = commuteState.logPhase;
+  const activeTransportId = commuteState.selectedTransportId;
+
+  const selectedTransportItem = selectedTransport
+    ? TRANSPORT_ITEMS.find((t) => t.id === selectedTransport)
+    : null;
+  const activeTransportItem =
+    activeTransportId != null ? TRANSPORT_ITEMS.find((t) => t.id === activeTransportId) : null;
+  const isTransportSelected =
+    selectedTransport != null && TRANSPORT_ITEMS.some((t) => t.id === selectedTransport);
+  const isLogActive = logPhase === 'tracking' || logPhase === 'paused';
+
+  useEffect(() => {
+    if (logPhase === 'paused') {
+      setElapsedMs(getElapsedMs());
+      return;
+    }
+    if (logPhase !== 'tracking') return;
+    const tick = () => setElapsedMs(getElapsedMs());
+    tick();
+    timerRef.current = setInterval(tick, 200);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [logPhase, getElapsedMs]);
 
   const goBack = () => navigation.goBack();
 
-  const handleAddToImpact = () => {
-    const item = TRANSPORT_ITEMS.find((t) => t.id === selectedTransport);
+  const handleStartLog = () => {
+    if (!isTransportSelected || !selectedTransport) return;
+    startLog(selectedTransport);
+    setElapsedMs(0);
+  };
+
+  const handlePause = () => pauseLog();
+  const handleContinue = () => continueLog();
+
+  const handleStopLog = () => {
+    const item = activeTransportItem;
     if (!item) return;
-    const newXp = item.xp;
-    const newCo2 = item.co2Kg;
-    addImpact({ xp: newXp, co2Kg: newCo2 });
-    setEarnedXp(newXp);
-    setEarnedCo2(newCo2);
+    const { xp, co2Kg } = stopLog(item.co2Kg);
+    addImpact({ xp, co2Kg });
+    setEarnedXp(xp);
+    setEarnedCo2(co2Kg);
     setShowSuccess(true);
-    scaleAnim.setValue(0);
-    opacityAnim.setValue(0);
-    checkOpacity.setValue(0);
-    Animated.sequence([
-      Animated.parallel([
-        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 8, tension: 80 }),
-        Animated.timing(opacityAnim, { toValue: 1, duration: 280, useNativeDriver: true }),
-      ]),
-      Animated.timing(checkOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
+    runSuccessAnimation(scaleAnim, opacityAnim, checkOpacity);
+  };
+
+  const handleAddToImpact = () => {
+    const item = TRANSPORT_ITEMS.find((t) => t.id === selectedTransport) ?? selectedTransportItem;
+    if (!item) return;
+    addImpact({ xp: item.xp, co2Kg: item.co2Kg });
+    setEarnedXp(item.xp);
+    setEarnedCo2(item.co2Kg);
+    setShowSuccess(true);
+    runSuccessAnimation(scaleAnim, opacityAnim, checkOpacity);
   };
 
   const closeSuccess = () => {
@@ -159,17 +224,72 @@ export default function LogYourActionScreen() {
           ))}
         </View>
 
+        {/* Commute tracking card - shown when a log is active (persists across back navigation) */}
+        {isLogActive && activeTransportItem && (
+          <View style={[styles.trackingCard, { width: contentWidth }]}>
+            <View style={styles.trackingHeader}>
+              <View style={[styles.trackingIconWrap, { backgroundColor: activeTransportItem.iconBg }]}>
+                <Ionicons name={activeTransportItem.icon} size={28} color={GREEN} />
+              </View>
+              <Text style={[styles.trackingLabel, { fontFamily: FONT.semiBold }]}>
+                Logging {activeTransportItem.label} commute
+              </Text>
+            </View>
+            <Text style={[styles.timerDisplay, { fontFamily: FONT.extraBold }]}>
+              {formatDuration(elapsedMs)}
+            </Text>
+            <Text style={[styles.timerHint, { fontFamily: FONT.medium }]}>
+              {logPhase === 'paused' ? 'Paused' : 'Tap Pause to pause, Stop when done'}
+            </Text>
+            <View style={styles.trackingButtons}>
+              <TouchableOpacity
+                style={[styles.trackingBtnSecondary, logPhase === 'paused' && styles.trackingBtnPrimary]}
+                onPress={logPhase === 'tracking' ? handlePause : handleContinue}
+                activeOpacity={0.85}
+              >
+                <Ionicons
+                  name={logPhase === 'tracking' ? 'pause' : 'play'}
+                  size={22}
+                  color={logPhase === 'paused' ? '#FFFFFF' : TEXT_DARK}
+                />
+                <Text
+                  style={[
+                    styles.trackingBtnText,
+                    { fontFamily: FONT.bold },
+                    logPhase === 'paused' && styles.trackingBtnTextPrimary,
+                  ]}
+                >
+                  {logPhase === 'tracking' ? 'Pause' : 'Continue'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.trackingBtnStop} onPress={handleStopLog} activeOpacity={0.85}>
+                <Ionicons name="stop" size={22} color="#FFFFFF" />
+                <Text style={[styles.trackingBtnText, styles.trackingBtnTextPrimary, { fontFamily: FONT.bold }]}>
+                  Stop log
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         <View style={[styles.bottomSpacer, { width: contentWidth }]} />
       </ScrollView>
 
-      {/* Add to My Impact button */}
+      {/* Footer: Start Log (transport, no active log) | Add to My Impact (lifestyle only) */}
       <View style={[styles.footer, { paddingHorizontal: CONTENT_PADDING }]}>
-        <TouchableOpacity style={styles.ctaButton} onPress={handleAddToImpact} activeOpacity={0.85}>
-          <Text style={[styles.ctaText, { fontFamily: FONT.bold }]}>Add to My Impact</Text>
-        </TouchableOpacity>
+        {isTransportSelected && !isLogActive && (
+          <TouchableOpacity style={styles.ctaButton} onPress={handleStartLog} activeOpacity={0.85}>
+            <Text style={[styles.ctaText, { fontFamily: FONT.bold }]}>Start Log</Text>
+          </TouchableOpacity>
+        )}
+        {!isTransportSelected && (
+          <TouchableOpacity style={styles.ctaButton} onPress={handleAddToImpact} activeOpacity={0.85}>
+            <Text style={[styles.ctaText, { fontFamily: FONT.bold }]}>Add to My Impact</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Success overlay */}
+      {/* Success overlay — "Added to Impact!" (shown after Stop log or lifestyle add) */}
       <Modal visible={showSuccess} transparent animationType="none">
         <Pressable style={styles.successOverlay} onPress={closeSuccess}>
           <Animated.View
@@ -394,6 +514,68 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 20,
+  },
+  trackingCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: GREEN,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 4 },
+    }),
+  },
+  trackingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  trackingIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trackingLabel: { fontSize: 16, color: TEXT_DARK },
+  timerDisplay: {
+    fontSize: 44,
+    color: GREEN,
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+  timerHint: { fontSize: 13, color: TEXT_MUTED, marginBottom: 20 },
+  trackingButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  trackingBtnSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: ICON_BG_LIGHT,
+  },
+  trackingBtnPrimary: {
+    backgroundColor: GREEN,
+  },
+  trackingBtnText: { fontSize: 16, color: TEXT_DARK },
+  trackingBtnTextPrimary: { color: '#FFFFFF' },
+  trackingBtnStop: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#DC2626',
   },
   footer: {
     paddingVertical: 16,

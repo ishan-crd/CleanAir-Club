@@ -11,6 +11,7 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
 import { ImpactProvider } from './src/contexts/ImpactContext';
+import { CommuteLogProvider } from './src/contexts/CommuteLogContext';
 import RootNavigator from './src/navigation/RootNavigator';
 
 SplashScreen.preventAutoHideAsync();
@@ -37,9 +38,11 @@ export default function App() {
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <StatusBar style="dark" />
       <ImpactProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
+        <CommuteLogProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </CommuteLogProvider>
       </ImpactProvider>
     </View>
   );
