@@ -96,9 +96,6 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={styles.headerBadges}>
-            <View style={styles.xpBadgeHeader}>
-              <Text style={[styles.xpBadgeHeaderText, { fontFamily: FONT.bold }]}>{totalPoints} XP</Text>
-            </View>
             <TouchableOpacity style={styles.levelBadge} onPress={openLevelScreen} activeOpacity={0.8}>
               <Ionicons name="star" size={16} color="#0F9F59" />
               <Text style={[styles.levelText, { fontFamily: FONT.bold }]}>Level {currentLevel}</Text>
@@ -247,17 +244,6 @@ const styles = StyleSheet.create({
   headerBadges: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  xpBadgeHeader: {
-    backgroundColor: '#FFF7ED',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 9999,
-  },
-  xpBadgeHeaderText: {
-    fontSize: 14,
-    color: '#EA580C',
   },
   levelBadge: {
     flexDirection: 'row',
