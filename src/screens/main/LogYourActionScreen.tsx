@@ -37,8 +37,8 @@ const TRANSPORT_ITEMS = [
 ];
 
 const LIFESTYLE_ITEMS = [
-  { id: 'bottle', title: 'Reusable Bottle', desc: 'Zero plastic waste today', co2: '-0.2kg', xp: 15, icon: 'heart' as const, iconBg: '#DBEAFE', iconColor: '#2563EB' },
-  { id: 'meal', title: 'Meat-free Meal', desc: 'Plant-based breakfast', co2: '-1.5kg', xp: 50, icon: 'restaurant' as const, iconBg: '#FFEDD5', iconColor: '#EA580C' },
+  { id: 'bottle', title: 'Reusable Bottle', desc: 'Zero plastic waste today', co2: '-0.2kg', co2Kg: 0.2, xp: 15, icon: 'heart' as const, iconBg: '#DBEAFE', iconColor: '#2563EB' },
+  { id: 'meal', title: 'Meat-free Meal', desc: 'Plant-based breakfast', co2: '-1.5kg', co2Kg: 1.5, xp: 50, icon: 'restaurant' as const, iconBg: '#FFEDD5', iconColor: '#EA580C' },
 ];
 
 function formatDuration(ms: number): string {
@@ -73,6 +73,7 @@ export default function LogYourActionScreen() {
   const commute = useCommuteLog();
 
   const [selectedTransport, setSelectedTransport] = useState<string | null>('metro');
+  const [selectedLifestyle, setSelectedLifestyle] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [earnedXp, setEarnedXp] = useState(0);
   const [earnedCo2, setEarnedCo2] = useState(0);
@@ -124,7 +125,7 @@ export default function LogYourActionScreen() {
     const item = activeTransportItem;
     if (!item) return;
     const { xp, co2Kg } = stopLog(item.co2Kg);
-    addImpact({ xp, co2Kg });
+    addImpact({ xp, co2Kg, label: item.label });
     setEarnedXp(xp);
     setEarnedCo2(co2Kg);
     setShowSuccess(true);
@@ -132,11 +133,15 @@ export default function LogYourActionScreen() {
   };
 
   const handleAddToImpact = () => {
-    const item = TRANSPORT_ITEMS.find((t) => t.id === selectedTransport) ?? selectedTransportItem;
+    const transportItem = TRANSPORT_ITEMS.find((t) => t.id === selectedTransport) ?? selectedTransportItem;
+    const lifestyleItem = selectedLifestyle ? LIFESTYLE_ITEMS.find((l) => l.id === selectedLifestyle) : null;
+    const item = transportItem ?? lifestyleItem;
     if (!item) return;
-    addImpact({ xp: item.xp, co2Kg: item.co2Kg });
+    const label = 'label' in item ? item.label : (item as (typeof LIFESTYLE_ITEMS)[0]).title;
+    const co2Kg = 'co2Kg' in item ? item.co2Kg : (item as (typeof LIFESTYLE_ITEMS)[0]).co2Kg;
+    addImpact({ xp: item.xp, co2Kg, label });
     setEarnedXp(item.xp);
-    setEarnedCo2(item.co2Kg);
+    setEarnedCo2(co2Kg);
     setShowSuccess(true);
     runSuccessAnimation(scaleAnim, opacityAnim, checkOpacity);
   };
@@ -144,6 +149,11 @@ export default function LogYourActionScreen() {
   const closeSuccess = () => {
     setShowSuccess(false);
     goBack();
+  };
+
+  const goToMyImpacts = () => {
+    setShowSuccess(false);
+    (navigation as { navigate: (name: string) => void }).navigate('MyImpacts');
   };
 
   return (
@@ -181,7 +191,10 @@ export default function LogYourActionScreen() {
                 <TouchableOpacity
                   key={item.id}
                   style={[styles.transportCard, isSelected && styles.transportCardSelected]}
-                  onPress={() => setSelectedTransport(item.id)}
+                  onPress={() => {
+                setSelectedTransport(item.id);
+                setSelectedLifestyle(null);
+              }}
                   activeOpacity={0.8}
                 >
                   <View style={[styles.transportIconWrap, { backgroundColor: item.iconBg }]}>
@@ -208,7 +221,15 @@ export default function LogYourActionScreen() {
         <View style={[styles.section, { width: contentWidth }]}>
           <Text style={[styles.sectionTitle, styles.sectionTitleStandalone, { fontFamily: FONT.bold }]}>Lifestyle</Text>
           {LIFESTYLE_ITEMS.map((item) => (
-            <TouchableOpacity key={item.id} style={styles.lifestyleCard} activeOpacity={0.8}>
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.lifestyleCard, selectedLifestyle === item.id && styles.lifestyleCardSelected]}
+              onPress={() => {
+                setSelectedLifestyle(item.id);
+                setSelectedTransport(null);
+              }}
+              activeOpacity={0.8}
+            >
               <View style={[styles.lifestyleIconWrap, { backgroundColor: item.iconBg }]}>
                 <Ionicons name={item.icon} size={22} color={item.iconColor} />
               </View>
@@ -333,9 +354,12 @@ export default function LogYourActionScreen() {
                 <Text style={[styles.successTotalsValue, { fontFamily: FONT.bold }]}>{co2SavedKg.toFixed(1)} kg CO₂</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.successCta} onPress={closeSuccess} activeOpacity={0.85}>
-              <Text style={[styles.successCtaText, { fontFamily: FONT.bold }]}>View my impact</Text>
+            <TouchableOpacity style={styles.successCta} onPress={goToMyImpacts} activeOpacity={0.85}>
+              <Text style={[styles.successCtaText, { fontFamily: FONT.bold }]}>Go to my impacts</Text>
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.successCtaSecondary} onPress={closeSuccess} activeOpacity={0.85}>
+              <Text style={[styles.successCtaSecondaryText, { fontFamily: FONT.medium }]}>Done</Text>
             </TouchableOpacity>
           </Animated.View>
         </Pressable>
@@ -475,10 +499,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
       android: { elevation: 3 },
     }),
+  },
+  lifestyleCardSelected: {
+    borderColor: GREEN,
   },
   lifestyleIconWrap: {
     width: 48,
@@ -685,5 +714,14 @@ const styles = StyleSheet.create({
   successCtaText: {
     fontSize: 16,
     color: '#FFFFFF',
+  },
+  successCtaSecondary: {
+    marginTop: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  successCtaSecondaryText: {
+    fontSize: 15,
+    color: TEXT_MUTED,
   },
 });

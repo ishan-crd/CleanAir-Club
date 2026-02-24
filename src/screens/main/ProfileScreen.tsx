@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { FONT } from '../../theme/fonts';
 import { ACHIEVEMENTS } from '../../data/achievements';
+import { useImpact } from '../../contexts/ImpactContext';
 
 const CONTENT_PADDING = 24;
 const GREEN = '#0F9F59';
@@ -38,9 +39,15 @@ export default function ProfileScreen() {
   const { width } = useWindowDimensions();
   const contentWidth = width - CONTENT_PADDING * 2;
   const navigation = useNavigation();
+  const { logs, co2SavedKg } = useImpact();
+  const rootNav = (navigation as { getParent?: () => { navigate: (name: string, params?: object) => void } }).getParent?.();
+
   const openAchievements = (highlightId?: string) => {
-    const root = (navigation as { getParent?: () => { navigate: (name: string, params?: object) => void } }).getParent?.();
-    root?.navigate('Achievements', highlightId ? { highlightId } : undefined);
+    rootNav?.navigate('Achievements', highlightId ? { highlightId } : undefined);
+  };
+
+  const openMyImpacts = () => {
+    rootNav?.navigate('MyImpacts');
   };
 
   return (
@@ -89,6 +96,28 @@ export default function ProfileScreen() {
             <Text style={[styles.statValue, { color: STAT_PURPLE }, { fontFamily: FONT.extraBold }]}>14d</Text>
             <Text style={[styles.statLabel, { fontFamily: FONT.medium }]}>STREAK</Text>
           </View>
+        </View>
+
+        {/* My Impact */}
+        <View style={[styles.section, { width: contentWidth }]}>
+          <TouchableOpacity
+            style={styles.myImpactCard}
+            onPress={openMyImpacts}
+            activeOpacity={0.7}
+          >
+            <View style={styles.myImpactLeft}>
+              <View style={styles.myImpactIconWrap}>
+                <Ionicons name="leaf" size={24} color={GREEN} />
+              </View>
+              <View>
+                <Text style={[styles.myImpactTitle, { fontFamily: FONT.bold }]}>My Impact</Text>
+                <Text style={[styles.myImpactSubtitle, { fontFamily: FONT.medium }]}>
+                  {logs.length} {logs.length === 1 ? 'log' : 'logs'} · {co2SavedKg.toFixed(1)} kg CO₂ saved
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={TEXT_MUTED} />
+          </TouchableOpacity>
         </View>
 
         {/* Achievements */}
@@ -257,6 +286,42 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+  },
+  myImpactCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: BORDER_LIGHT,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6 },
+      android: { elevation: 2 },
+    }),
+  },
+  myImpactLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  myImpactIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: BADGE_BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  myImpactTitle: {
+    fontSize: 16,
+    color: TEXT_DARK,
+    marginBottom: 2,
+  },
+  myImpactSubtitle: {
+    fontSize: 13,
+    color: TEXT_MUTED,
   },
   sectionHeader: {
     flexDirection: 'row',

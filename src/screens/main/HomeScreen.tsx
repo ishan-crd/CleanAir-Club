@@ -87,7 +87,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={[styles.welcomeText, { fontFamily: FONT.medium }]}>Welcome back,</Text>
+            <Text style={[styles.welcomeText, { fontFamily: FONT.medium }]}>Welcome back Ishan,</Text>
             <View style={styles.greetingRow}>
               <Text style={[styles.greetingTitle, { fontFamily: FONT.extraBold }]}>
                 Good Morning
@@ -113,7 +113,7 @@ export default function HomeScreen() {
           </View>
           <Text style={[styles.aqiLabel, { fontFamily: FONT.bold }]}>AQ AIR QUALITY INDEX</Text>
           <Text style={[styles.aqiValue, { fontFamily: FONT.extraBold }]}>
-            250 — Very Unhealthy
+            250 - Very Unhealthy
           </Text>
           <Text style={[styles.aqiRecommendation, { fontFamily: FONT.medium }]}>
             Sensitive groups should stay at home

@@ -4,6 +4,7 @@ import MainTabNavigator from './MainTabNavigator';
 import LogYourActionScreen from '../screens/main/LogYourActionScreen';
 import LevelScreen from '../screens/main/LevelScreen';
 import AchievementsScreen from '../screens/main/AchievementsScreen';
+import MyImpactsScreen from '../screens/main/MyImpactsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,6 +16,7 @@ export default function RootNavigator() {
       <Stack.Screen name="LogYourAction" component={LogYourActionScreen} />
       <Stack.Screen name="Level" component={LevelScreen} />
       <Stack.Screen name="Achievements" component={AchievementsScreen} />
+      <Stack.Screen name="MyImpacts" component={MyImpactsScreen} />
     </Stack.Navigator>
   );
 }
